@@ -15,7 +15,7 @@ const Spotify = {
         const expiresInMatch = window.location.href.match(/expires_in=([^&]*)/);
         
         if (accessTokenMatch && expiresInMatch) {
-            const accessToken = accessTokenMatch[1];
+            let accessToken = accessTokenMatch[1];
             const expiresIn = Number(expiresInMatch[1]);
             //set the token to expire and clears the parameters from the URL
             window.setTimeout(() => accessToken = '', expiresIn * 1000);
@@ -46,6 +46,36 @@ const Spotify = {
                 album: track.album.name,
                 uri: track.uri
             }));
+        });
+    },
+
+    savePlaylist(playlistName, URIarray) {
+        if(!playlistName || !URIarray.length) {
+            return;
+        }
+        const accessToken = Spotify.getAccessToken();
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        let userId;
+
+        return fetch("https://api.spotify.com/v1/me", { headers: headers }
+        ).then(response => response.json()
+        ).then(jsonResponse => {
+            userId = jsonResponse.id;
+            return fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, 
+            { 
+                headers: headers,
+                method: "POST",
+                body: JSON.stringify({ name: playlistName })
+            }).then(response => response.json()
+            ).then(jsonResponse => {
+                const playlistId = jsonResponse.id;
+                return fetch(`https://api.spotify.com/v1/users/${userId}/playlists/${playlistId}/tracks`, 
+                {
+                    headers: headers,
+                    method: "POST",
+                    body: JSON.stringify({ uris: URIarray })
+                });
+            });
         });
     }
 }
